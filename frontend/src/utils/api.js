@@ -21,21 +21,21 @@ export async function apiLogin(body) {
 }
 
 export async function apiMongoRegister(body) {
-	const r = await fetch(API + '/mongo/register', {
+	const r = await fetch(API + '/register', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(body)
 	})
-	if (!r.ok) throw new Error('mongo register failed')
+	if (!r.ok) throw new Error('register failed')
 	return r.json()
 }
 
 export async function apiMongoLogin(body) {
-	const r = await fetch(API + '/mongo/login', {
+	const r = await fetch(API + '/login', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(body)
 	})
-	if (!r.ok) throw new Error('mongo login failed')
+	if (!r.ok) throw new Error('login failed')
 	return r.json()
 }

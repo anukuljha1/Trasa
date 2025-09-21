@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
 import './styles.css'
 import Navbar from './components/Navbar.jsx'
+import ProtectedRoute from './components/ProtectedRoute.jsx'
 import Landing from './pages/Landing.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
@@ -28,10 +29,38 @@ const router = createBrowserRouter([
 		element: <Layout />,
 		children: [
 			{ index: true, element: <Landing /> },
-			{ path: 'dashboard', element: <Dashboard /> },
-			{ path: 'record', element: <RecordTest /> },
-			{ path: 'admin', element: <Admin /> },
-			{ path: 'profile', element: <Profile /> },
+			{ 
+				path: 'dashboard', 
+				element: (
+					<ProtectedRoute>
+						<Dashboard />
+					</ProtectedRoute>
+				)
+			},
+			{ 
+				path: 'record', 
+				element: (
+					<ProtectedRoute>
+						<RecordTest />
+					</ProtectedRoute>
+				)
+			},
+			{ 
+				path: 'admin', 
+				element: (
+					<ProtectedRoute requireAdmin={true}>
+						<Admin />
+					</ProtectedRoute>
+				)
+			},
+			{ 
+				path: 'profile', 
+				element: (
+					<ProtectedRoute>
+						<Profile />
+					</ProtectedRoute>
+				)
+			},
 			{ path: 'login', element: <Login /> },
 			{ path: 'register', element: <Register /> },
 		],

@@ -1,23 +1,25 @@
-from fastapi import APIRouter, Depends
-import aiosqlite
+from fastapi import APIRouter, HTTPException, Depends
 
-from ..db import get_db
-from ..mongo import get_mongo_db
+from mongo import get_mongo_db
+from auth import require_admin
 
 router = APIRouter(prefix="", tags=["stats"])
 
 
 @router.get("/stats")
-async def get_stats(db: aiosqlite.Connection = Depends(get_db)):
-	# SQLite counts
-	cur = await db.execute("SELECT COUNT(*) FROM athletes")
-	athletes_count = (await cur.fetchone())[0]
-	cur = await db.execute("SELECT COUNT(*) FROM results")
-	results_count = (await cur.fetchone())[0]
-	# Mongo counts
-	db_m = get_mongo_db()
-	users_count = await db_m["users"].count_documents({})
-	return {
-		"sqlite": {"athletes": athletes_count, "results": results_count},
-		"mongo": {"users": users_count}
-	}
+async def get_stats(current_user: dict = Depends(require_admin)):
+	try:
+		db = get_mongo_db()
+		
+		# MongoDB counts
+		users_count = await db.users.count_documents({})
+		results_count = await db.results.count_documents({})
+		audit_logs_count = await db.audit_logs.count_documents({})
+		
+		return {
+			"users": users_count,
+			"results": results_count,
+			"audit_logs": audit_logs_count
+		}
+	except Exception as e:
+		raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
