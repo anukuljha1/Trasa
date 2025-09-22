@@ -46,6 +46,15 @@ class HybridExerciseAnalyzer:
         
         # Analyze video content based on filename and size
         exercise_type, count = self._analyze_video_content(file_name, file_size)
+
+        # Basic cheat/quality heuristics: penalize if file too small or too short
+        cheat_flags = []
+        if file_size < 150_000:
+            cheat_flags.append('very_short_clip')
+        if exercise_type == 'pushup' and count > 0 and file_size / max(count,1) < 60_000:
+            cheat_flags.append('too_fast_pushups')
+        if exercise_type == 'situp' and count > 0 and file_size / max(count,1) < 60_000:
+            cheat_flags.append('too_fast_situps')
         
         # Generate realistic frame-by-frame results
         frame_results = self._generate_frame_results(exercise_type, count)
@@ -65,10 +74,11 @@ class HybridExerciseAnalyzer:
             'frame_results': frame_results,
             'detected_exercise': exercise_type,
             'analysis_quality': 'Hybrid Analysis',
-            'form_score': form_score,
+            'form_score': max(0, form_score - (10 if cheat_flags else 0)),
             'pose_detection_rate': 85.0,  # Realistic detection rate
             'file_size': file_size,
-            'processing_time': processing_time
+            'processing_time': processing_time,
+            'cheat_flags': cheat_flags
         }
         
         print(f"Hybrid analysis complete: {final_counts}, detected: {exercise_type}")
@@ -77,7 +87,7 @@ class HybridExerciseAnalyzer:
     def _analyze_video_content(self, file_name: str, file_size: int) -> tuple:
         """Analyze video content to determine exercise type and count"""
         
-        # Check filename for hints
+        # Check filename for hints; if test type is unclear, return None to avoid false detection
         if 'pushup' in file_name or 'push' in file_name:
             exercise_type = 'pushup'
             count = random.randint(3, 15)
@@ -88,16 +98,9 @@ class HybridExerciseAnalyzer:
             exercise_type = 'jump'
             count = random.randint(2, 10)
         else:
-            # Analyze based on file size and random selection
-            if file_size > 2000000:  # Large file, likely longer exercise
-                exercise_type = random.choice(['pushup', 'situp'])
-                count = random.randint(8, 20)
-            elif file_size > 1000000:  # Medium file
-                exercise_type = random.choice(['pushup', 'situp', 'jump'])
-                count = random.randint(5, 12)
-            else:  # Small file, likely short exercise
-                exercise_type = 'jump'
-                count = random.randint(2, 8)
+            # Avoid guessing to reduce false detections
+            exercise_type = None
+            count = 0
         
         return exercise_type, count
     

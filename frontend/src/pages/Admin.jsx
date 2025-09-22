@@ -10,20 +10,25 @@ export default function Admin() {
 
 	const refresh = () => {
 		setError('')
-		fetch(API + '/admin/results')
-			.then(r => r.ok ? r.json() : Promise.reject(new Error('fetch failed')))
-			.then(setResults)
-			.catch(()=> setError('Unable to load results. Is backend running?'))
+		const token = (typeof window !== 'undefined' && localStorage.getItem('token')) || ''
+		const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
 		
-		fetch(API + '/stats')
-			.then(r => r.ok ? r.json() : Promise.reject(new Error('fetch failed')))
+		fetch(API + '/admin/results', { headers })
+			.then(r => r.ok ? r.json() : Promise.reject(new Error(r.status)))
+			.then(setResults)
+			.catch((e)=> setError(e.message === '401' || e.message === '403' ? 'Unauthorized. Please log in as admin.' : 'Unable to load results. Is backend running?'))
+		
+		fetch(API + '/stats', { headers })
+			.then(r => r.ok ? r.json() : Promise.reject(new Error(r.status)))
 			.then(setStats)
 			.catch(()=> {})
 	}
 	useEffect(refresh, [])
 
 	const act = async (id, action) => {
-		await fetch(API + `/admin/results/${id}/${action}` , { method: 'POST' })
+		const token = (typeof window !== 'undefined' && localStorage.getItem('token')) || ''
+		const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+		await fetch(API + `/admin/results/${id}/${action}` , { method: 'POST', headers })
 		refresh()
 	}
 

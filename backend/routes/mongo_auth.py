@@ -28,45 +28,49 @@ class LoginPayload(BaseModel):
 
 @router.post("/register")
 async def register(payload: RegisterPayload):
-	try:
-		db = get_mongo_db()
-		users = db["users"]
-		existing = await users.find_one({"email": payload.email})
-		if existing:
-			raise HTTPException(status_code=400, detail="Email already registered")
-		hashed = pwd_ctx.hash(payload.password)
-		await users.insert_one({
-			"email": payload.email,
-			"name": payload.name,
-			"password_hash": hashed,
-			"role": "user",
-			"created_at": datetime.utcnow().isoformat()
-		})
-		
-		return {"ok": True}
-	except Exception as e:
-		raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    try:
+        db = get_mongo_db()
+        users = db["users"]
+        existing = await users.find_one({"email": payload.email})
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        hashed = pwd_ctx.hash(payload.password)
+        await users.insert_one({
+            "email": payload.email,
+            "name": payload.name,
+            "password_hash": hashed,
+            "role": "user",
+            "created_at": datetime.utcnow().isoformat()
+        })
+        return {"ok": True}
+    except HTTPException as he:
+        # Preserve deliberate HTTP errors (e.g., 400 duplicate email)
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 
 @router.post("/login")
 async def login(payload: LoginPayload):
-	try:
-		db = get_mongo_db()
-		users = db["users"]
-		user = await users.find_one({"email": payload.email})
-		if not user or not pwd_ctx.verify(payload.password, user.get("password_hash", "")):
-			raise HTTPException(status_code=401, detail="Invalid credentials")
-		
-		# Include role in token
-		user_role = user.get("role", "user")
-		token = jwt.encode({
-			"sub": payload.email, 
-			"role": user_role,
-			"exp": datetime.utcnow() + timedelta(hours=12)
-		}, JWT_SECRET, algorithm=JWT_ALG)
-		return {"access_token": token, "token_type": "bearer", "role": user_role}
-	except Exception as e:
-		raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    try:
+        db = get_mongo_db()
+        users = db["users"]
+        user = await users.find_one({"email": payload.email})
+        if not user or not pwd_ctx.verify(payload.password, user.get("password_hash", "")):
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        # Include role in token
+        user_role = user.get("role", "user")
+        token = jwt.encode({
+            "sub": payload.email, 
+            "role": user_role,
+            "exp": datetime.utcnow() + timedelta(hours=12)
+        }, JWT_SECRET, algorithm=JWT_ALG)
+        return {"access_token": token, "token_type": "bearer", "role": user_role}
+    except HTTPException as he:
+        # Do not wrap auth errors as 500
+        raise he
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 # Add mongo prefix routes for frontend compatibility
 @mongo_router.post("/register")

@@ -36,12 +36,16 @@ async def analyze_video(
     # Generate unique video ID
     video_id = str(uuid.uuid4())
     
-    # Validate file type
-    if not file.content_type.startswith('video/'):
-        raise HTTPException(status_code=400, detail="File must be a video")
+    # Validate file type (be lenient for browsers that send octet-stream)
+    file_extension = Path(file.filename).suffix.lower()
+    allowed_ext = {'.webm', '.mp4', '.mov', '.mkv', '.avi'}
+    content_type = (file.content_type or '').lower()
+    if not (content_type.startswith('video/') or file_extension in allowed_ext):
+        raise HTTPException(status_code=400, detail="File must be a video (.webm, .mp4, .mov, .mkv, .avi)")
     
     # Save uploaded file
-    file_extension = Path(file.filename).suffix
+    if not file_extension:
+        file_extension = '.webm'
     video_path = UPLOADS_DIR / f"{video_id}{file_extension}"
     
     try:

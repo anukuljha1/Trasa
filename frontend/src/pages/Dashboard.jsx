@@ -5,11 +5,12 @@ export default function Dashboard() {
 	const [results, setResults] = useState([])
 	const [error, setError] = useState('')
 	useEffect(() => {
-		const email = localStorage.getItem('email')
-		fetch(API + '/admin/results')
-			.then(r => r.ok ? r.json() : Promise.reject(new Error('fetch failed')))
-			.then(data => setResults((data||[]).filter(r => r.email === email)))
-			.catch(()=> setError('Unable to load results. Is backend running?'))
+		const token = localStorage.getItem('token') || ''
+		const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+		fetch(API + '/results/mine', { headers })
+			.then(r => r.ok ? r.json() : Promise.reject(new Error(r.status)))
+			.then(data => setResults(data||[]))
+			.catch((e)=> setError(e.message === '401' || e.message === '403' ? 'Please login to view your results.' : 'Unable to load results. Is backend running?'))
 	}, [])
 
 	return (

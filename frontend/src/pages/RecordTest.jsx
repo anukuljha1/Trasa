@@ -21,9 +21,10 @@ export default function RecordTest() {
 			.catch(e => console.error('Failed to load exercises:', e))
 	}, [])
 
-	const onStop = async (b, u) => {
-		setBlob(b); setUrl(u); setAnalysisResult(null); setMsg('Ready to analyze')
-	}
+const [durationMs, setDurationMs] = useState(0)
+const onStop = async (b, u, dMs) => {
+	setBlob(b); setUrl(u); setDurationMs(dMs||0); setAnalysisResult(null); setMsg('Ready to analyze')
+}
 
 	const analyze = async () => {
 		if (!blob) { setMsg('Record or upload a video first'); return }
@@ -32,7 +33,8 @@ export default function RecordTest() {
 		try {
 			// Upload video for analysis
 			const formData = new FormData()
-			formData.append('file', blob, 'recording.webm')
+			const filename = blob.type?.includes('mp4') ? 'recording.mp4' : (blob.name || 'recording.webm')
+			formData.append('file', blob, filename)
 			
 			const response = await fetch(API + '/ml/analyze-video', {
 				method: 'POST',
@@ -132,8 +134,11 @@ export default function RecordTest() {
 					</select>
 				</div>
 				<div className="bg-white border rounded p-3">
-					<CameraRecorder onStop={onStop} />
+				<CameraRecorder onStop={onStop} />
 				</div>
+			{durationMs > 0 && (
+				<div className="text-xs text-gray-600">Recorded duration: {(durationMs/1000).toFixed(1)}s</div>
+			)}
 				<div className="flex gap-2">
 					<button onClick={analyze} disabled={!url || busy} className="px-3 py-2 bg-indigo-600 text-white rounded disabled:opacity-50">
 						{busy ? 'Analyzing...' : 'Analyze'}

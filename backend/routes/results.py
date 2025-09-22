@@ -15,6 +15,30 @@ UPLOAD_DIR = Path(__file__).resolve().parent.parent / "uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 
+@router.get("/results/mine")
+async def get_my_results(current_user: dict = Depends(get_current_user)):
+	try:
+		db = get_mongo_db()
+		cursor = db.results.find({"athlete_email": current_user.get("email")}).sort("created_at", -1)
+		items = []
+		async for doc in cursor:
+			# normalize fields for frontend
+			doc_id = str(doc.get("_id")) if doc.get("_id") else None
+			items.append({
+				"id": doc_id,
+				"email": doc.get("athlete_email"),
+				"name": doc.get("athlete_name", ""),
+				"test_type": doc.get("test_type"),
+				"metrics_json": doc.get("metrics_json"),
+				"video_path": doc.get("video_path"),
+				"status": doc.get("status", "pending"),
+				"created_at": doc.get("created_at"),
+			})
+		return items
+	except Exception as e:
+		raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
+
 @router.post("/results")
 async def submit_result(
 	athlete_email: str = Form(...),
